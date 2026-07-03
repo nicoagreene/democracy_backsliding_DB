@@ -27,24 +27,24 @@ CREATE TABLE articles (
     source_url TEXT NOT NULL UNIQUE,
     citation TEXT NOT NULL,
     violation_category TEXT NOT NULL CHECK (violation_category IN (
-        'Immigration and Deportations',
-        'Erasure and Censorship',
-        'Institutional Crackdowns',
-        'Individual Rights and Freedoms',
-        'Judicial Agency',
-        'Judicial Crackdown',
-        'Targeting/Civil Society Attacks',
-        'Civil Society Resistance',
-        'Violence',
-        'Foreign Policy'
+        'immigration_and_deportations',
+        'erasure_and_censorship',
+        'institutional_crackdowns',
+        'individual_rights_and_freedoms',
+        'judicial_agency',
+        'judicial_crackdown',
+        'targeting_civil_society_attacks',
+        'civil_society_resistance',
+        'violence',
+        'foreign_policy'
     )),
     violation_description TEXT NOT NULL,
     summary TEXT NOT NULL,
     classification TEXT CHECK (classification IN (
-        'Social Contradiction',
-        'Norm Violation',
-        'Unlawful',
-        'Unconstitutional'
+        'social_contradiction',
+        'norm_violation',
+        'unlawful',
+        'unconstitutional'
     )),
     contributor_id INTEGER REFERENCES contributors(id),
     date_added TEXT NOT NULL DEFAULT (datetime('now'))      -- ISO format: 'YYYY-MM-DD'
