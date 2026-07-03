@@ -13,4 +13,43 @@ Judicial Agency, Judicial Crackdown, Targeting/Civil Society Attacks, Civil soci
 
 classification: Social Contradiction, Norm Violation, Unlawful, Unconstitutional
 
+Creating DB schema: 
+
+Dates stores as 'YYYY-MM-DD'.
+
+CREATE TABLE articles (
+    id INTEGER PRIMARY KEY,
+    article_name TEXT NOT NULL,
+    publication_date TEXT NOT NULL,
+    source_name TEXT, 
+    source_url TEXT NOT NULL UNIQUE,
+    citation TEXT NOT NULL,
+    violation_category TEXT NOT NULL CHECK (violation_category IN CHECK (violation_category IN (
+        'Immigration and Deportations',
+        'Erasure and Censorship',
+        'Institutional Crackdowns',
+        'Individual Rights and Freedoms',
+        'Judicial Agency',
+        'Judicial Crackdown',
+        'Targeting/Civil Society Attacks',
+        'Civil Society Resistance',
+        'Violence',
+        'Foreign Policy'
+    )),
+    summary TEXT NOT NULL,
+    classification TEXT CHECK (classification IN (
+        'Social Contradiction',
+        'Norm Violation',
+        'Unlawful',
+        'Unconstitutional'
+    )),
+    contributor_id INTEGER REFERNCES contributors(id)
+    date_added TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE contributors (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
 """
