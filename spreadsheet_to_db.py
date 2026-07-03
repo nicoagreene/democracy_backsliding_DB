@@ -17,6 +17,8 @@ Creating DB schema:
 
 Dates stores as 'YYYY-MM-DD'.
 
+I think only question at this point is how flexible do I want categories to be.
+
 CREATE TABLE articles (
     id INTEGER PRIMARY KEY,
     article_name TEXT NOT NULL,
