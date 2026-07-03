@@ -22,11 +22,11 @@ I think only question at this point is how flexible do I want categories to be.
 CREATE TABLE articles (
     id INTEGER PRIMARY KEY,
     article_name TEXT NOT NULL,
-    publication_date TEXT NOT NULL,
-    source_name TEXT, 
+    publication_date TEXT NOT NULL,     -- ISO format: 'YYYY-MM-DD'
+    source_name TEXT NOT NULL, 
     source_url TEXT NOT NULL UNIQUE,
     citation TEXT NOT NULL,
-    violation_category TEXT NOT NULL CHECK (violation_category IN CHECK (violation_category IN (
+    violation_category TEXT NOT NULL CHECK (violation_category IN (
         'Immigration and Deportations',
         'Erasure and Censorship',
         'Institutional Crackdowns',
@@ -38,6 +38,7 @@ CREATE TABLE articles (
         'Violence',
         'Foreign Policy'
     )),
+    violation_description TEXT NOT NULL,
     summary TEXT NOT NULL,
     classification TEXT CHECK (classification IN (
         'Social Contradiction',
@@ -45,13 +46,13 @@ CREATE TABLE articles (
         'Unlawful',
         'Unconstitutional'
     )),
-    contributor_id INTEGER REFERNCES contributors(id)
-    date_added TEXT NOT NULL DEFAULT (datetime('now'))
-);
+    contributor_id INTEGER REFERENCES contributors(id),
+    date_added TEXT NOT NULL DEFAULT (datetime('now'))      -- ISO format: 'YYYY-MM-DD'
+) STRICT;
 
 CREATE TABLE contributors (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL
-);
+) STRICT;
 
 """
