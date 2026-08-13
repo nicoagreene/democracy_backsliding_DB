@@ -70,12 +70,34 @@ import re
 import sqlite3
 import pandas as pd
 
-institutional_crackdown_df = pd.read_csv("csv/institutional_crackdown.csv")
-print(institutional_crackdown_df.columns)
-print(institutional_crackdown_df["Citation (MLA)"])
+def main():
 
-con = sqlite3.connect("articles.db")
-cur = con.cursor()
+    df = pd.read_csv("csv/institutional_crackdown.csv")
+    #print(df.columns)
+    #print(df["Citation (MLA)"])
+
+
+    for index, row in df.iterrows():
+        contributor_raw = row["Name of Contributor and date of Contribution"]
+        date_raw = row["Date"]
+        source = row["Source"]
+        citation = row["Citation (MLA)"]
+        violation = row["Violation"]
+        summary = row["Summary"]
+        notes = row["Notes"]
+        classification = row["Classification"]
+
+        contributor_name = get_contributor_name(str(contributor_raw)) if pd.notna(contributor_raw) else None
+        publication_date = convert_date(date_raw) if pd.notna(date_raw) else None
+        source_name = get_source_date(citation) if pd.notna(citation) else None
+
+        #print(contributor_name)
+        #print(index, contributor_name, publication_date, source, citation, violation, summary, notes, classification, source_name)
+
+
+    con = sqlite3.connect("articles.db")
+    cur = con.cursor()
+
 
 
 #res = cur.execute("PRAGMA table_info(articles)")
@@ -88,18 +110,28 @@ cur = con.cursor()
 
 #We must keep the source names uniform throughout all the entries I feel like this is relatively important
 #dictionary that maps the url names to source titles we have in our DB
-#No reason to create this now we can do this all later
-source_names = {
-}
+#No reason to create this now we can do this all late
 
 def get_contributor_name(text):
     text = re.sub(r'\([^)]*\)', '', text)
-    text = text.split(',')[0]
+    match = re.search(r'[,.]|\s+(?=\d)', text)
+    if match:
+        text = text[:match.start()]
     return text.strip()
 
 def convert_date(text):
-    month, day, year = text.strip().split('/')
-    return f"20{int(year):02d}-{int(month):02d}-{int(day):02d}"
+    #There was some weird formatting going on with the dating I'm not sure if 
+    #this works for all the cases but I j manually changed one thing
+    try:
+        parts = re.split(r'[/-]', text.strip())
+        if len(parts) == 2:
+            month, day = parts
+            year = 2026
+        else:
+            month, day, year = parts
+        return f"{int(year):02d}-{int(month):02d}-{int(day):02d}"
+    except ValueError:
+        print(text)
 
 def get_source_date(citation):
     """
@@ -128,4 +160,8 @@ def get_source_date(citation):
         return None
 
     return match.group(1).lower()
+
+
+if __name__ == "__main__":
+    main()
 
