@@ -1,4 +1,9 @@
 """
+To Do 8/31:
+    -ensure entries are correct
+    -What would happen if I were to rerun this script? Are there duplicates
+    I think not because article_url was specified to be unique in the schema
+
 DB schema:
 
 Fields per entry:
