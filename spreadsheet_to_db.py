@@ -70,9 +70,16 @@ import re
 import sqlite3
 import pandas as pd
 
+
+"""
+Eventually (could be a good idea to make this now), there needs to be an input validation 
+system for adding these entries into the db
+"""
+
 def main():
 
     df = pd.read_csv("csv/institutional_crackdown.csv")
+    violation_category = "institutional_crackdowns"  # must match the schema CHECK constraint
     #print(df.columns)
     #print(df["Citation (MLA)"])
 
@@ -80,16 +87,20 @@ def main():
     con = sqlite3.connect("articles.db")
     cur = con.cursor()
 
+    cur.execute("PRAGMA foreign_keys = ON")
+
+    inserted = 0
+    skipped = []
+
     for index, row in df.iterrows():
         if row.isna().all():
             continue
 
-        violation_category = "institutional_crackdown"
         contributor_raw = row["Name of Contributor and date of Contribution"]
         date_raw = row["Date"]
         source = row["Source"]
         citation = row["Citation (MLA)"]
-        violation = row["Violation"]
+        violation_description = row["Violation"]
         summary = row["Summary"]
         notes = row["Notes"]
         classification = row["Classification"]
@@ -100,20 +111,61 @@ def main():
         publication_date = convert_date(date_raw) if pd.notna(date_raw) else None
         source_name = get_source_from_url(citation) if pd.notna(citation) else None
         article_name = get_article_name(source) if pd.notna(source) else None
-        source_url = get_url_from_citation(citation)
+        source_url = get_url_from_citation(citation) if pd.notna(citation) else None
         classification_formatted = format_classification(classification)
-        #conntributor_id = get_or_create_contributor(cur, contributor_name)
 
-        print("article name:", article_name)
-        print("publication_date:", publication_date)
-        print("source_name:", source_name)
-        print("source_url:", source_url)
-        print("citation:", citation)
-        print("violation category:", violation_category)
-        print("violation:", violation)
-        print("summary:", summary)
-        print("classification:", classification_formatted)
-        print("\n\n")
+        # Every column below is NOT NULL in the schema. Skip the row if we could
+        # not derive one, rather than letting a single bad row abort the import.
+        required = {
+            "article_name": article_name,
+            "publication_date": publication_date,
+            "source_name": source_name,
+            "source_url": source_url,
+            "citation": citation if pd.notna(citation) else None,
+            "violation_description": violation_description if pd.notna(violation_description) else None,
+            "summary": summary if pd.notna(summary) else None,
+        }
+        missing = [name for name, value in required.items()
+                   if value is None or (isinstance(value, str) and not value.strip())]
+        if missing:
+            skipped.append((index, "missing " + ", ".join(missing)))
+            continue
+
+        contributor_id = get_or_create_contributor(cur, contributor_name)
+
+        #First arg is initial prompt with placeholder values, then we have a tuple of our actual values.
+        #The ? placeholders  and parameter tuple comes with type conversions from python to sqlite3
+        #ON CONFLICT makes re-running the import idempotent on the UNIQUE source_url.
+        try:
+            cur.execute(
+            """
+            INSERT INTO articles
+            (article_name, publication_date, source_name, source_url, citation,
+            violation_category, violation_description, summary, classification, contributor_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(source_url) DO NOTHING
+            """,
+            (article_name, publication_date, source_name, source_url, citation,
+            violation_category, violation_description, summary, classification_formatted, contributor_id),
+            )
+        except sqlite3.Error as exc:
+            skipped.append((index, f"insert failed: {exc}"))
+            continue
+
+        if cur.rowcount:
+            inserted += 1
+        else:
+            skipped.append((index, "duplicate source_url"))
+
+    con.commit()
+    con.close()
+
+    print(f"Inserted {inserted} article(s); skipped {len(skipped)} row(s).")
+    for idx, reason in skipped:
+        print(f"  row {idx}: {reason}")
+
+
+        
 
 
 
@@ -126,13 +178,11 @@ def main():
 
 
 
-#We must keep the source names uniform throughout all the entries I feel like this is relatively important
-#dictionary that maps the url names to source titles we have in our DB
-#No reason to create this now we can do this all late
+
 
 def get_or_create_contributor(cur, name):
-    if name == "NULL":
-        return "NULL"
+    if name is None or name == "NULL" or not str(name).strip():
+        return None
 
     cur.execute("SELECT id FROM contributors WHERE name = ?", (name,))
     row = cur.fetchone()
@@ -224,7 +274,7 @@ def format_classification(classification):
 
     """
     if pd.isna(classification):
-        return "NULL"
+        return None
 
     return classification.strip().lower().replace(" ", "_")
 
