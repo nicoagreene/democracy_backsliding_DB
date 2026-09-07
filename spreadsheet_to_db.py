@@ -81,10 +81,14 @@ Eventually (could be a good idea to make this now), there needs to be an input v
 system for adding these entries into the db
 """
 
-def main():
 
-    df = pd.read_csv("csv/institutional_crackdown.csv")
-    violation_category = "institutional_crackdowns"  # must match the schema CHECK constraint
+def main():
+    add_articles("erasure_and_censorship")
+
+
+def add_articles(violation_category):
+
+    df = pd.read_csv(f"csv/{violation_category}.csv")
     #print(df.columns)
     #print(df["Citation (MLA)"])
 
@@ -101,8 +105,8 @@ def main():
         if row.isna().all():
             continue
 
-        contributor_raw = row["Name of Contributor and date of Contribution"]
-        date_raw = row["Date"]
+        contributor_raw = row["Name of contributor and date uploaded"]
+        date_raw = row["Date of event (M/D/YYYY)"]
         source = row["Source"]
         citation = row["Citation (MLA)"]
         violation_description = row["Violation"]
@@ -170,9 +174,49 @@ def main():
         print(f"  row {idx}: {reason}")
 
 
-        
+def preview_articles(violation_category):
+    """
+    Extract the same fields as main(), in the same way, but only print them
+    for visual inspection instead of writing to the database.
 
+    violation_category is also the name of the csv to read, e.g.
+    "civil_society_resistance" reads "csv/civil_society_resistance.csv".
+    """
 
+    df = pd.read_csv(f"csv/{violation_category}.csv")
+
+    for index, row in df.iterrows():
+        if row.isna().all():
+            continue
+
+        contributor_raw = row["Name of contributor and date uploaded"]
+        date_raw = row["Date of event (M/D/YYYY)"]
+        source = row["Source"]
+        citation = row["Citation (MLA)"]
+        violation_description = row["Violation"]
+        summary = row["Summary"]
+        notes = row["Notes"]
+        classification = row["Classification"]
+
+        contributor_name = get_contributor_name(str(contributor_raw)) if pd.notna(contributor_raw) else None
+        publication_date = convert_date(date_raw) if pd.notna(date_raw) else None
+        source_name = get_source_from_url(citation) if pd.notna(citation) else None
+        article_name = get_article_name(source) if pd.notna(source) else None
+        source_url = get_url_from_citation(citation) if pd.notna(citation) else None
+        classification_formatted = format_classification(classification)
+
+        print(f"--- row {index} ---")
+        print(f"article_name:          {article_name}")
+        print(f"publication_date:      {publication_date}")
+        print(f"source_name:           {source_name}")
+        print(f"source_url:            {source_url}")
+        print(f"citation:              {citation}")
+        print(f"violation_category:    {violation_category}")
+        print(f"violation_description: {violation_description}")
+        print(f"summary:               {summary}")
+        print(f"classification:        {classification_formatted}")
+        print(f"contributor_name:      {contributor_name}")
+        print()
 
 
 #res = cur.execute("PRAGMA table_info(articles)")
