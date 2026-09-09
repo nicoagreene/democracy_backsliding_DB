@@ -66,6 +66,10 @@ CREATE TABLE contributors (
 INSERT INTO articles (article_name, publication_date, source_name, source_url,
                      citation, violation_category, violation_description, summary, 
                      classification, contributor_id)
+
+INSERT INTO articles ('How Trump is reshaping reality by hiding data', '2025-03-11', 'wapo', 'https://wapo.st/3EqHfmG', 'Shendruk, Amanda, and Catherine Rampell. "How Trump Is Reshaping Reality by Hiding Data." The Washington Post, 11 Mar. 2025, https://wapo.st/3EqHfmG.', 'erasure_and_censorship', 'Throughout his political career, Donald Trump has become known for his falsehoods and data manipulation. Since taking office, he has accelerated his erasure and censorship. DOGE has deleted 404 pages thus far.', 'norm_violation',
+)
+'https://www.nytimes.com/2025/02/02/upshot/trump-government-websites-missing-pages.html'
 """
 
 
@@ -80,10 +84,32 @@ import pandas as pd
 Eventually (could be a good idea to make this now), there needs to be an input validation 
 system for adding these entries into the db
 """
+"""
+INSERT INTO articles
+    (article_name, publication_date, source_name, source_url, citation,
+     violation_category, violation_description, summary, classification)
+VALUES
+    ('How the Pentagon Is Blocking Out News Organizations',
+     '2025-10-15',
+     'nytimes',
+     'https://www.nytimes.com/interactive/2025/10/15/business/media/pentagon-press-rules.html',
+     'Wemple, Erik. "How the Pentagon Is Blocking Out News Organizations." The New York Times, 15 October 2025, https://www.nytimes.com/interactive/2025/10/15/business/media/pentagon-press-rules.html',
+     'erasure_and_censorship',
+     'The new rules represent a major attack on the Freedom of the Press and government transparency. Although the legality of these rules may be litigated, they certainly limit reporter''s access and harm their ability to ensure transparency. Transparency is extremely important to vertical accountability.',
+     'On Wednesday, most Pentagon journalists refused to sign onto the Defense Department''s new rules and handed in their press credentials. This included organizations like The New York Times, NBC News, and Fox News. The new rules sharply limit access and raise the possibility of punishment for violating the rules. The rules affect building access and journalistic inquiry.',
+     'norm_violation')
+ON CONFLICT(source_url) DO NOTHING;
 
+
+
+"""
 
 def main():
-    add_articles("erasure_and_censorship")
+    #add_articles("erasure_and_censorship")
+
+    con = sqlite3.connect("articles.db")
+    cur = con.cursor()
+    print(get_or_create_contributor(cur, 'Teodor Bortan'))
 
 
 def add_articles(violation_category):
