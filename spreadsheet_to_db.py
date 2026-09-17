@@ -1,8 +1,6 @@
 """
-To Do 8/31:
-    -ensure entries are correct
-    -What would happen if I were to rerun this script? Are there duplicates
-    I think not because article_url was specified to be unique in the schema
+To Do aftr 9/16:
+    - change schema to allow for temporary rulings?
 
 Spreadsheets added:
     -erasure_and_censorship
