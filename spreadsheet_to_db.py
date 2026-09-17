@@ -4,6 +4,13 @@ To Do 8/31:
     -What would happen if I were to rerun this script? Are there duplicates
     I think not because article_url was specified to be unique in the schema
 
+Spreadsheets added:
+    -erasure_and_censorship
+    -institutional_crackdown
+    -immigration_and_deportations
+    -individual_rights_and_freedoms
+
+
 DB schema:
 
 Fields per entry:
@@ -104,12 +111,42 @@ ON CONFLICT(source_url) DO NOTHING;
 
 """
 
-def main():
-    #add_articles("erasure_and_censorship")
+"""
+Not added articles
 
-    con = sqlite3.connect("articles.db")
-    cur = con.cursor()
-    print(get_or_create_contributor(cur, 'Teodor Bortan'))
+immigration_and_deportation
+  row 27: missing source_name, source_url
+  row 28: missing source_name, source_url
+  row 32: insert failed: CHECK constraint failed: classification IN (
+        'social_contradiction',
+        'norm_violation',
+        'unlawful',
+        'unconstitutional'
+    )
+
+
+individual_rights_and_freedoms
+  row 3: duplicate source_url
+  row 4: duplicate source_url
+  row 7: duplicate source_url
+  row 10: duplicate source_url
+  row 17: duplicate source_url
+  row 19: duplicate source_url
+  row 26: missing source_name, source_url
+  row 27: missing source_name, source_url
+  row 29: duplicate source_url
+  row 31: duplicate source_url
+
+
+"""
+
+
+def main():
+    add_articles("individual_rights_and_freedoms")
+
+    #con = sqlite3.connect("articles.db")
+    #cur = con.cursor()
+    #print(get_or_create_contributor(cur, 'Teodor Bortan'))
 
 
 def add_articles(violation_category):
@@ -131,7 +168,7 @@ def add_articles(violation_category):
         if row.isna().all():
             continue
 
-        contributor_raw = row["Name of contributor and date uploaded"]
+        contributor_raw = row.iloc[0]
         date_raw = row["Date of event (M/D/YYYY)"]
         source = row["Source"]
         citation = row["Citation (MLA)"]
@@ -347,11 +384,18 @@ def format_classification(classification):
     example input: "Unlawful"
     output: "unlawful"
 
+    example input: "Social Contradictions"
+    ouput: "social_contradiction"
+
+    example input: "Norm Violations"
+    output: "norm_violation"
+
     """
     if pd.isna(classification):
         return None
 
-    return classification.strip().lower().replace(" ", "_")
+    formatted = classification.strip().lower().replace(" ", "_")
+    return formatted.removesuffix("s")
 
 def get_url_from_citation(citation):
     """
