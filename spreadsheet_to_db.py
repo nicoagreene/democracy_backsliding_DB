@@ -1,6 +1,6 @@
 """
-To Do aftr 9/16:
-    - change schema to allow for temporary rulings?
+Todo 9.18:
+    -review claude re schematizing.
 
 Spreadsheets added:
     -erasure_and_censorship
@@ -33,9 +33,31 @@ CREATE TABLE articles (
     id INTEGER PRIMARY KEY,
     article_name TEXT NOT NULL,
     publication_date TEXT NOT NULL,     -- ISO format: 'YYYY-MM-DD'
-    source_name TEXT NOT NULL, 
+    source_name TEXT NOT NULL,
     source_url TEXT NOT NULL UNIQUE,
     citation TEXT NOT NULL,
+    violation_description TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    classification TEXT CHECK (classification IN (
+        'social_contradiction',
+        'norm_violation',
+        'unlawful',
+        'unconstitutional',
+        'temporary_ruling'
+    )),
+    contributor_id INTEGER REFERENCES contributors(id),
+    date_added TEXT NOT NULL DEFAULT (datetime('now'))      -- ISO format: 'YYYY-MM-DD'
+) STRICT;
+
+CREATE TABLE contributors (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+) STRICT;
+
+-- An article can belong to more than one violation category, so category
+-- membership lives in this junction table instead of a column on articles.
+CREATE TABLE article_categories (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
     violation_category TEXT NOT NULL CHECK (violation_category IN (
         'immigration_and_deportations',
         'erasure_and_censorship',
@@ -48,33 +70,20 @@ CREATE TABLE articles (
         'violence',
         'foreign_policy'
     )),
-    violation_description TEXT NOT NULL,
-    summary TEXT NOT NULL,
-    classification TEXT CHECK (classification IN (
-        'social_contradiction',
-        'norm_violation',
-        'unlawful',
-        'unconstitutional'
-    )),
-    contributor_id INTEGER REFERENCES contributors(id),
-    date_added TEXT NOT NULL DEFAULT (datetime('now'))      -- ISO format: 'YYYY-MM-DD'
-) STRICT;
-
-CREATE TABLE contributors (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL
+    PRIMARY KEY (article_id, violation_category)
 ) STRICT;
 
 """
 #prompt to insert a value:
 """
 INSERT INTO articles (article_name, publication_date, source_name, source_url,
-                     citation, violation_category, violation_description, summary, 
-                     classification, contributor_id)
+                     citation, violation_description, summary, classification, contributor_id)
 
-INSERT INTO articles ('How Trump is reshaping reality by hiding data', '2025-03-11', 'wapo', 'https://wapo.st/3EqHfmG', 'Shendruk, Amanda, and Catherine Rampell. "How Trump Is Reshaping Reality by Hiding Data." The Washington Post, 11 Mar. 2025, https://wapo.st/3EqHfmG.', 'erasure_and_censorship', 'Throughout his political career, Donald Trump has become known for his falsehoods and data manipulation. Since taking office, he has accelerated his erasure and censorship. DOGE has deleted 404 pages thus far.', 'norm_violation',
+INSERT INTO articles ('How Trump is reshaping reality by hiding data', '2025-03-11', 'wapo', 'https://wapo.st/3EqHfmG', 'Shendruk, Amanda, and Catherine Rampell. "How Trump Is Reshaping Reality by Hiding Data." The Washington Post, 11 Mar. 2025, https://wapo.st/3EqHfmG.', 'Throughout his political career, Donald Trump has become known for his falsehoods and data manipulation. Since taking office, he has accelerated his erasure and censorship. DOGE has deleted 404 pages thus far.', 'norm_violation',
 )
 'https://www.nytimes.com/2025/02/02/upshot/trump-government-websites-missing-pages.html'
+
+INSERT INTO article_categories (article_id, violation_category) VALUES (?, 'erasure_and_censorship')
 """
 
 
@@ -92,14 +101,13 @@ system for adding these entries into the db
 """
 INSERT INTO articles
     (article_name, publication_date, source_name, source_url, citation,
-     violation_category, violation_description, summary, classification)
+     violation_description, summary, classification)
 VALUES
     ('How the Pentagon Is Blocking Out News Organizations',
      '2025-10-15',
      'nytimes',
      'https://www.nytimes.com/interactive/2025/10/15/business/media/pentagon-press-rules.html',
      'Wemple, Erik. "How the Pentagon Is Blocking Out News Organizations." The New York Times, 15 October 2025, https://www.nytimes.com/interactive/2025/10/15/business/media/pentagon-press-rules.html',
-     'erasure_and_censorship',
      'The new rules represent a major attack on the Freedom of the Press and government transparency. Although the legality of these rules may be litigated, they certainly limit reporter''s access and harm their ability to ensure transparency. Transparency is extremely important to vertical accountability.',
      'On Wednesday, most Pentagon journalists refused to sign onto the Defense Department''s new rules and handed in their press credentials. This included organizations like The New York Times, NBC News, and Fox News. The new rules sharply limit access and raise the possibility of punishment for violating the rules. The rules affect building access and journalistic inquiry.',
      'norm_violation')
@@ -160,6 +168,7 @@ def add_articles(violation_category):
     cur.execute("PRAGMA foreign_keys = ON")
 
     inserted = 0
+    categories_added = 0
     skipped = []
 
     for index, row in df.iterrows():
@@ -205,46 +214,82 @@ def add_articles(violation_category):
 
         #First arg is initial prompt with placeholder values, then we have a tuple of our actual values.
         #The ? placeholders  and parameter tuple comes with type conversions from python to sqlite3
-        #ON CONFLICT makes re-running the import idempotent on the UNIQUE source_url.
+        #ON CONFLICT makes re-running the import idempotent on the UNIQUE source_url. The article's
+        #shared fields no longer include violation_category -- category membership now lives in
+        #article_categories, so a source_url shared across multiple category CSVs reuses the same
+        #article row and simply gains an extra category link below, instead of the old behavior
+        #where the second+ category was silently dropped by this same ON CONFLICT DO NOTHING.
         try:
             cur.execute(
             """
             INSERT INTO articles
             (article_name, publication_date, source_name, source_url, citation,
-            violation_category, violation_description, summary, classification, contributor_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            violation_description, summary, classification, contributor_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(source_url) DO NOTHING
+            RETURNING id
             """,
             (article_name, publication_date, source_name, source_url, citation,
-            violation_category, violation_description, summary, classification_formatted, contributor_id),
+            violation_description, summary, classification_formatted, contributor_id),
             )
         except sqlite3.Error as exc:
             skipped.append((index, f"insert failed: {exc}"))
             continue
 
-        if cur.rowcount:
+        new_row = cur.fetchone()
+        if new_row is not None:
+            article_id = new_row[0]
             inserted += 1
+            is_new_article = True
         else:
-            skipped.append((index, "duplicate source_url"))
+            cur.execute("SELECT id FROM articles WHERE source_url = ?", (source_url,))
+            existing = cur.fetchone()
+            if existing is None:
+                skipped.append((index, "insert conflicted but existing row not found"))
+                continue
+            article_id = existing[0]
+            is_new_article = False
+
+        try:
+            cur.execute(
+                "INSERT OR IGNORE INTO article_categories (article_id, violation_category) VALUES (?, ?)",
+                (article_id, violation_category),
+            )
+        except sqlite3.Error as exc:
+            skipped.append((index, f"category insert failed: {exc}"))
+            continue
+
+        if cur.rowcount:
+            categories_added += 1
+        elif not is_new_article:
+            skipped.append((index, "duplicate source_url; category already recorded"))
 
     con.commit()
     con.close()
 
-    print(f"Inserted {inserted} article(s); skipped {len(skipped)} row(s).")
+    print(f"Inserted {inserted} new article(s); added {categories_added} category link(s); "
+          f"skipped {len(skipped)} row(s).")
     for idx, reason in skipped:
         print(f"  row {idx}: {reason}")
 
 
 def preview_articles(violation_category):
     """
-    Extract the same fields as main(), in the same way, but only print them
-    for visual inspection instead of writing to the database.
+    Extract the same fields as add_articles(), in the same way, but only
+    print them for visual inspection instead of writing to the database.
+    Also reports whether the source_url already exists (e.g. added under a
+    different category CSV) and whether this category is already recorded
+    for it, so preview output matches add_articles()'s multi-category
+    behavior.
 
     violation_category is also the name of the csv to read, e.g.
     "civil_society_resistance" reads "csv/civil_society_resistance.csv".
     """
 
     df = pd.read_csv(f"csv/{violation_category}.csv")
+
+    con = sqlite3.connect("file:articles.db?mode=ro", uri=True)
+    cur = con.cursor()
 
     for index, row in df.iterrows():
         if row.isna().all():
@@ -266,7 +311,24 @@ def preview_articles(violation_category):
         source_url = get_url_from_citation(citation) if pd.notna(citation) else None
         classification_formatted = format_classification(classification)
 
-        print(f"--- row {index} ---")
+        status = "NEW ARTICLE"
+        if source_url:
+            cur.execute("SELECT id FROM articles WHERE source_url = ?", (source_url,))
+            existing = cur.fetchone()
+            if existing is not None:
+                existing_id = existing[0]
+                cur.execute(
+                    "SELECT 1 FROM article_categories WHERE article_id = ? AND violation_category = ?",
+                    (existing_id, violation_category),
+                )
+                already_tagged = cur.fetchone() is not None
+                status = (
+                    f"EXISTING ARTICLE id={existing_id}; category already recorded (no-op)"
+                    if already_tagged
+                    else f"EXISTING ARTICLE id={existing_id}; would ADD category '{violation_category}'"
+                )
+
+        print(f"--- row {index} [{status}] ---")
         print(f"article_name:          {article_name}")
         print(f"publication_date:      {publication_date}")
         print(f"source_name:           {source_name}")
@@ -278,6 +340,8 @@ def preview_articles(violation_category):
         print(f"classification:        {classification_formatted}")
         print(f"contributor_name:      {contributor_name}")
         print()
+
+    con.close()
 
 
 #res = cur.execute("PRAGMA table_info(articles)")
