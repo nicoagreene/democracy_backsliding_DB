@@ -143,12 +143,24 @@ individual_rights_and_freedoms
   row 29: duplicate source_url
   row 31: duplicate source_url
 
+  
+individual rights and freedoms (after re scheme):
+    -row 23 with missing values
+
+immigration and deportation
+    -row 27, 28 missing values
+erasure and censorship:
+    -row 6,  7 missing source namem source url
+
+insitutional crackdown"
+    -row 48 and 49 skipped, missing source name, url
+    -85 same
 
 """
 
 
 def main():
-    add_articles("individual_rights_and_freedoms")
+    add_articles("institutional_crackdowns")
 
     #con = sqlite3.connect("articles.db")
     #cur = con.cursor()
@@ -162,7 +174,7 @@ def add_articles(violation_category):
     #print(df["Citation (MLA)"])
 
 
-    con = sqlite3.connect("articles.db")
+    con = sqlite3.connect("articles_test.db")
     cur = con.cursor()
 
     cur.execute("PRAGMA foreign_keys = ON")
@@ -176,7 +188,7 @@ def add_articles(violation_category):
             continue
 
         contributor_raw = row.iloc[0]
-        date_raw = row["Date of event (M/D/YYYY)"]
+        date_raw = row.iloc[1]
         source = row["Source"]
         citation = row["Citation (MLA)"]
         violation_description = row["Violation"]
