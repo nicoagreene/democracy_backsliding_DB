@@ -3,10 +3,17 @@ Todo 9.18:
     -review claude re schematizing.
 
 Spreadsheets added:
+    -civil_society_resistance
     -erasure_and_censorship
     -institutional_crackdown
     -immigration_and_deportations
     -individual_rights_and_freedoms
+    -targeting_civil_society_attacks
+    -judicial_agency
+    -judicial_crackdown
+
+*did not add violence because too little articles,
+did not think this was a real category
 
 
 DB schema:
@@ -27,9 +34,33 @@ Creating DB schema:
 
 Dates stores as 'YYYY-MM-DD'.
 
-I think only question at this point is how flexible do I want categories to be.
+CREATE TABLE contributors (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+) STRICT;
 
-CREATE TABLE articles (
+
+-- An article can belong to more than one violation category, so category
+-- membership lives in this junction table instead of a column on articles.
+
+CREATE TABLE article_categories (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    violation_category TEXT NOT NULL CHECK (violation_category IN (
+        'immigration_and_deportations',
+        'erasure_and_censorship',
+        'institutional_crackdowns',
+        'individual_rights_and_freedoms',
+        'judicial_agency',
+        'judicial_crackdown',
+        'targeting_civil_society_attacks',
+        'civil_society_resistance',
+        'violence',
+        'foreign_policy'
+    )),
+    PRIMARY KEY (article_id, violation_category)
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS "articles" (
     id INTEGER PRIMARY KEY,
     article_name TEXT NOT NULL,
     publication_date TEXT NOT NULL,     -- ISO format: 'YYYY-MM-DD'
@@ -46,31 +77,7 @@ CREATE TABLE articles (
         'temporary_ruling'
     )),
     contributor_id INTEGER REFERENCES contributors(id),
-    date_added TEXT NOT NULL DEFAULT (datetime('now'))      -- ISO format: 'YYYY-MM-DD'
-) STRICT;
-
-CREATE TABLE contributors (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL
-) STRICT;
-
--- An article can belong to more than one violation category, so category
--- membership lives in this junction table instead of a column on articles.
-CREATE TABLE article_categories (
-    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
-    violation_category TEXT NOT NULL CHECK (violation_category IN (
-        'immigration_and_deportations',
-        'erasure_and_censorship',
-        'institutional_crackdowns',
-        'individual_rights_and_freedoms',
-        'judicial_agency',
-        'judicial_crackdown',
-        'targeting_civil_society_attacks',
-        'civil_society_resistance',
-        'violence',
-        'foreign_policy'
-    )),
-    PRIMARY KEY (article_id, violation_category)
+    date_added TEXT NOT NULL DEFAULT (datetime('now'))
 ) STRICT;
 
 """
@@ -119,30 +126,6 @@ ON CONFLICT(source_url) DO NOTHING;
 
 """
 Not added articles
-
-immigration_and_deportation
-  row 27: missing source_name, source_url
-  row 28: missing source_name, source_url
-  row 32: insert failed: CHECK constraint failed: classification IN (
-        'social_contradiction',
-        'norm_violation',
-        'unlawful',
-        'unconstitutional'
-    )
-
-
-individual_rights_and_freedoms
-  row 3: duplicate source_url
-  row 4: duplicate source_url
-  row 7: duplicate source_url
-  row 10: duplicate source_url
-  row 17: duplicate source_url
-  row 19: duplicate source_url
-  row 26: missing source_name, source_url
-  row 27: missing source_name, source_url
-  row 29: duplicate source_url
-  row 31: duplicate source_url
-
   
 individual rights and freedoms (after re scheme):
     -row 23 with missing values
@@ -155,12 +138,20 @@ erasure and censorship:
 insitutional crackdown"
     -row 48 and 49 skipped, missing source name, url
     -85 same
-
+judicial_agency:
+    -row 62: missing source_name, source_url
+    
+targeting civil society attacks 
+    -row 1: missing publication_date
+    -row 15: missing source_name, source_url, citation
+    -row 39: missing source_name, source_url
+    -row 52: missing source_name, source_url
+    -row 74: missing source_name, source_url
 """
 
 
 def main():
-    add_articles("institutional_crackdowns")
+    add_articles("targeting_civil_society_attacks")
 
     #con = sqlite3.connect("articles.db")
     #cur = con.cursor()
