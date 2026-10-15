@@ -165,7 +165,7 @@ def add_articles(violation_category):
     #print(df["Citation (MLA)"])
 
 
-    con = sqlite3.connect("articles_test.db")
+    con = sqlite3.connect("articles.db")
     cur = con.cursor()
 
     cur.execute("PRAGMA foreign_keys = ON")
