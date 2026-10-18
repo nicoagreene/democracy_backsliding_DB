@@ -1,4 +1,3 @@
-
 Claude reccomendation for how to balance learning and creating with this app.
 
 1. **Set up git and a project skeleton.** Learn basic commits and branches now. It’s the habit that pays off most.
@@ -14,7 +13,7 @@ Front end -- user side interface, this code all runs in the browser or the clien
 
 	-HMTL,CSS, React, Javascript/Typescript?
 
-Connect thes two through API's. Backends can also be prebuilt and accessible through public API's. 
+Connect thes two through API's. Backends can also be prebuilt and accessible through public API's.
 
 Backend -- business logic, applicaitons and processes. Code that runs not in the browser or client side.
 
@@ -22,7 +21,7 @@ Backend -- business logic, applicaitons and processes. Code that runs not in the
 
 	-I will have to create API's to access articles DB. Look into RESTFUL API's
 
-HTTP Network request: Running code from browser to request a server to compute or retrieve some information. Fetch and promises in javascript. 
+HTTP Network request: Running code from browser to request a server to compute or retrieve some information. Fetch and promises in javascript.
 
 DOM manipulation -- how Javascript changes the html page
 
