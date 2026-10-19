@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS "articles" (
     source_url TEXT NOT NULL UNIQUE,
     citation TEXT NOT NULL,
     violation_description TEXT NOT NULL,
-    summary TEXT NOT NULL,
+    fs TEXT NOT NULL,
     classification TEXT CHECK (classification IN (
         'social_contradiction',
         'norm_violation',
@@ -99,6 +99,7 @@ INSERT INTO article_categories (article_id, violation_category) VALUES (?, 'eras
 import re
 import sqlite3
 import pandas as pd
+import random
 
 
 """
@@ -149,18 +150,35 @@ targeting civil society attacks
     -row 74: missing source_name, source_url
 """
 
+def get_articles_by_category(violation_category):
+    con = sqlite3.connect("articles.db")
+    con.row_factory = sqlite3.Row  # lets you access columns by name: row["article_name"]
+    cur = con.cursor()
+
+    cur.execute(
+        """
+        SELECT a.*
+        FROM articles a
+        JOIN article_categories ac ON ac.article_id = a.id
+        WHERE ac.violation_category = ?
+        ORDER BY a.publication_date
+        """,
+        (violation_category,),
+    )
+    rows = cur.fetchall()
+    con.close()
+    return rows
 
 def main():
-    add_articles("targeting_civil_society_attacks")
-
-    #con = sqlite3.connect("articles.db")
-    #cur = con.cursor()
-    #print(get_or_create_contributor(cur, 'Teodor Bortan'))
-
+   # add_articles("targeting_civil_society_attacks")
+    cat_articles = get_articles_by_category("immigration_and_deportations")
+    ri = random.randint(0, len(cat_articles) - 1)
+    print(cat_articles[ri]["id"], cat_articles[ri]["article_name"])
 
 def add_articles(violation_category):
 
     df = pd.read_csv(f"csv/{violation_category}.csv")
+
     #print(df.columns)
     #print(df["Citation (MLA)"])
 
