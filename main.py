@@ -49,7 +49,17 @@ def get_article(cat : str):
     
     return [rows[ri]["article_name"], rows[ri]["summary"]]
 
-@api.get('/articles/{article_num}')
+@api.get('/articles/browse')
+def get_20(page: int = 0, limit: int = 20):
+    con = sqlite3.connect("articles.db")
+    cur = con.cursor()
+    # Execute command to get the coresponding article
+    # cur.execute()
+
+    
+
+
+@api.get('/articles_list/{article_num}')
 # so I think the brackets meaning it can be passable as an argument
 # it looks like the var below needs to exactly match the argument passed namespace
 def get_article_list(article_num: int): #if you specify type hint in arg, fastapi will change it for u
@@ -94,5 +104,11 @@ aynchronous and synchronous functions:
 
 path parameter: specified in path with /'param' and in fastapi ast /{param_name}
 query parameter: specified in path with ?var_name=arg and in fastapi with simply var_name in fun below decorator (w default)
-    
+    -You need to specify correct type hint in function argument.
+
+To get to UI to mess around with getting and posting j add /docs to localhost URL
+
+Can't have two methods with the same url
+
+
 """
