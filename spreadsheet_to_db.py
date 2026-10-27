@@ -171,9 +171,7 @@ def get_articles_by_category(violation_category):
 
 def main():
    # add_articles("targeting_civil_society_attacks")
-    cat_articles = get_articles_by_category("immigration_and_deportations")
-    ri = random.randint(0, len(cat_articles) - 1)
-    print(cat_articles[ri]["id"], cat_articles[ri]["article_name"])
+   pass
 
 def add_articles(violation_category):
 

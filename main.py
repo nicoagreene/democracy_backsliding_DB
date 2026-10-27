@@ -25,6 +25,53 @@ def add_item(article: str):
     articles.append(article)
     return articles
 
+#get articles for any given page on browse
+#eventually need to incorporate filtering options: Violation category, source
+# #must be defined before /articles/{cat} or "browse" gets matched as a category
+@api.get('/articles/browse')
+def get_20(page: int = 0, limit: int = 20, category: str | None = None, source: str | None = None):
+    if page < 0 or limit < 1:
+        raise HTTPException(status_code=400)
+
+    con = sqlite3.connect("articles.db")
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    # LIMIT = how many rows to return, OFFSET = how many rows to skip first
+    # if category/source is None that part of the WHERE is always true, so no filter is applied
+    # EXISTS (instead of JOIN) so an article with multiple categories isn't returned twice
+    # GROUP_CONCAT squashes all of an article's categories into one comma separated string
+    #
+    cur.execute(
+        """
+        SELECT a.*,
+            (SELECT GROUP_CONCAT(violation_category)
+             FROM article_categories
+             WHERE article_id = a.id) AS categories
+        FROM articles a
+        WHERE (? IS NULL OR EXISTS (
+            SELECT 1
+            FROM article_categories ac
+            WHERE ac.article_id = a.id AND ac.violation_category = ?
+        ))
+        AND (? IS NULL OR a.source_name = ?)
+        ORDER BY publication_date DESC, id
+        LIMIT ? OFFSET ?
+        """,
+        (category, category, source, source, limit, page * limit),
+    )
+    rows = cur.fetchall()
+    con.close()
+
+    results = []
+    for row in rows:
+        article = dict(row)
+        # split back into a list, articles with no categories get []
+        article["categories"] = article["categories"].split(",") if article["categories"] else []
+        results.append(article)
+    return results
+
+
 @api.get('/articles/{cat}')
 def get_article(cat : str):
     con = sqlite3.connect("articles.db")
@@ -49,12 +96,8 @@ def get_article(cat : str):
     
     return [rows[ri]["article_name"], rows[ri]["summary"]]
 
-@api.get('/articles/browse')
-def get_20(page: int = 0, limit: int = 20):
-    con = sqlite3.connect("articles.db")
-    cur = con.cursor()
-    # Execute command to get the coresponding article
-    # cur.execute()
+
+#Get for Homepage
 
     
 
