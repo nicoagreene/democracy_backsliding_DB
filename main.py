@@ -154,4 +154,14 @@ To get to UI to mess around with getting and posting j add /docs to localhost UR
 Can't have two methods with the same url
 
 
+
+Create table for FTS5 search:
+
+CREATE VIRTUAL TABLE articles_fts USING fts5(
+    article_name, summary, violation_description, source_name,
+    content='articles', content_rowid='id',
+    tokenize='porter unicode61'
+);
+
+
 """
