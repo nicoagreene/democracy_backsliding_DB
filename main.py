@@ -71,7 +71,7 @@ def get_20(page: int = 0, limit: int = 20, category: str | None = None, source: 
         results.append(article)
     return results
 
-
+#OLD just gives you a random article
 @api.get('/articles/{cat}')
 def get_article(cat : str):
     con = sqlite3.connect("articles.db")
@@ -95,6 +95,26 @@ def get_article(cat : str):
         raise HTTPException(status_code=404)
     
     return [rows[ri]["article_name"], rows[ri]["summary"]]
+
+
+@api.get('/articles/search/{term}')
+def keyword_search(term : str):
+    con = sqlite3.connect("articles.db")
+    con.row_factory = sqlite3.Row  # lets you access columns by name: row["article_name"]
+    cur = con.cursor()
+
+    cur.execute(
+        """
+        SELECT *
+        FROM articles_fts WHERE articles_fts 
+        MATCH ? 
+        ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0);
+        """,
+        (term,),
+    )
+    rows = cur.fetchall()
+
+    return rows
 
 
 #Get for Homepage
@@ -172,7 +192,19 @@ To index all the existing articles in one step:
 INSERT INTO articles_fts(articles_fts) VALUES('rebuild');
 
 
-Select article_name FROM articles_fts WHERE articles_fts MATCH 'deportation'
+Select article_name FROM articles_fts WHERE articles_fts MATCH 'deportation' ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0);
+
+bm25() scores each match, the numbers are fts are the weights assigned to each column, so article_name counts 10x, then summmary 1x, violation description 2x
+
+From claude on how to get snippet:
+
+SELECT a.id, a.article_name, a.publication_date,
+       snippet(articles_fts, 1, '<mark>', '</mark>', '…', 12) AS excerpt
+FROM articles_fts
+JOIN articles a ON a.id = articles_fts.rowid
+WHERE articles_fts MATCH ?
+ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0, 0.5)
+LIMIT 20;
 
 
 """
