@@ -96,7 +96,7 @@ def get_article(cat : str):
     
     return [rows[ri]["article_name"], rows[ri]["summary"]]
 
-
+#TODO add a join with articles db so that the query returns more than just summary, violation description, name
 @api.get('/articles/search/{term}')
 def keyword_search(term : str):
     con = sqlite3.connect("articles.db")
