@@ -158,10 +158,21 @@ Can't have two methods with the same url
 Create table for FTS5 search:
 
 CREATE VIRTUAL TABLE articles_fts USING fts5(
-    article_name, summary, violation_description, source_name,
+    article_name, summary, violation_description,
     content='articles', content_rowid='id',
     tokenize='porter unicode61'
 );
+
+So searches through article name, summary, and violation_description for the keyword
+
+Creates triggers to add articles to fts on insertion into articles
+
+
+To index all the existing articles in one step:
+INSERT INTO articles_fts(articles_fts) VALUES('rebuild');
+
+
+Select article_name FROM articles_fts WHERE articles_fts MATCH 'deportation'
 
 
 """
