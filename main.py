@@ -105,9 +105,10 @@ def keyword_search(term : str):
 
     cur.execute(
         """
-        SELECT *
-        FROM articles_fts WHERE articles_fts 
-        MATCH ? 
+        SELECT a.*
+        FROM articles_fts
+        JOIN articles a ON a.id = articles_fts.rowid
+        WHERE articles_fts MATCH ?
         ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0);
         """,
         (term,),
@@ -204,6 +205,23 @@ FROM articles_fts
 JOIN articles a ON a.id = articles_fts.rowid
 WHERE articles_fts MATCH ?
 ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0, 0.5)
+LIMIT 20;
+
+
+Query all the article data from a search:
+
+
+SELECT *
+FROM articles_fts WHERE articles_fts 
+MATCH ? 
+ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0);
+
+
+SELECT a.*
+FROM articles_fts
+JOIN articles a ON a.id = articles_fts.rowid
+WHERE articles_fts MATCH 'deportations'
+ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0)
 LIMIT 20;
 
 
