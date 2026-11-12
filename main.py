@@ -224,5 +224,7 @@ WHERE articles_fts MATCH 'deportations'
 ORDER BY bm25(articles_fts, 10.0, 1.0, 2.0)
 LIMIT 20;
 
+avg violation length is : 259.1646191646192 characters
+avg summary length is : 391.6928746928747 characters
 
 """

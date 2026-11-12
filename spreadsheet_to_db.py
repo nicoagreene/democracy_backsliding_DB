@@ -169,10 +169,36 @@ def get_articles_by_category(violation_category):
     con.close()
     return rows
 
+#avg violation length is : 259.1646191646192 characters
+#avg summary length is : 391.6928746928747 characters
+
 def main():
    # add_articles("targeting_civil_society_attacks")
-   pass
+    con = sqlite3.connect("articles.db")
+    cur = con.cursor()
 
+    cur.execute(
+        """
+        SELECT * FROM articles
+        """
+    )
+    rows = cur.fetchall()
+    #print(rows[0][6])
+    #print(rows[0][7])
+
+    
+    v_total = 0
+    s_total = 0
+    #count = 0
+    for row in rows:
+        v_total += len(row[6])
+        s_total += len(row[7])
+        #if (len(row[7]) > 370 and len(row[7]) < 410) and (len(row[6]) > 240 and len(row[6]) < 280):
+        #    print(row)
+        #    break
+    print("/n")
+    print(f"avg violation length is : {v_total / len(rows)} characters")
+    print(f"avg summary length is : {s_total / len(rows)} characters")
 def add_articles(violation_category):
 
     df = pd.read_csv(f"csv/{violation_category}.csv")
